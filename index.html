@@ -870,9 +870,12 @@
     <div class="panel">
       <div class="panel-head">
         Roll
-        <button class="btn btn-sm btn-ghost" id="admin-toggle-btn" onclick="toggleAdmin()" style="font-size:0.7rem">
-          Admin: OFF
-        </button>
+        <div style="display:flex;gap:0.4rem;align-items:center">
+          <button class="btn btn-sm btn-ghost btn-red" id="clear-board-btn" onclick="clearBoard()" style="display:none;font-size:0.7rem">Clear Board</button>
+          <button class="btn btn-sm btn-ghost" id="admin-toggle-btn" onclick="toggleAdmin()" style="font-size:0.7rem">
+            Admin: OFF
+          </button>
+        </div>
       </div>
       <div class="dice-panel">
         <div class="dice-wrap">
@@ -996,8 +999,14 @@
       btn.style.background=isAdmin?'var(--win)':'transparent';
       btn.style.color=isAdmin?'#000':'var(--text-dim)';
       btn.style.borderColor=isAdmin?'var(--win)':'#333';
+      document.getElementById('clear-board-btn').style.display=isAdmin?'inline-flex':'none';
       updateRollBtn();
       renderReps();
+    }
+
+    async function clearBoard() {
+      if(!confirm('Clear all bets off the board?')) return;
+      await db.from('rr_bets').delete().neq('id',0);
     }
 
     function updateRollBtn() {
