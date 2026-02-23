@@ -949,6 +949,23 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="edit-tokens-modal">
+    <div class="modal">
+      <h3>Edit Token Count</h3>
+      <div class="modal-sub" id="edit-tokens-label"></div>
+      <div class="modal-sub" id="edit-tokens-current" style="font-size:0.72rem;color:var(--text-dim);margin-top:2px"></div>
+      <div class="form-group" style="margin-top:1rem">
+        <label>Set token count to</label>
+        <input type="number" id="edit-tokens-input" min="0" max="99" style="width:100%;padding:8px;background:var(--surface-2);border:1px solid #444;border-radius:4px;color:var(--text);font-size:1rem;text-align:center">
+      </div>
+      <div style="font-size:0.7rem;color:var(--text-dim);margin-top:0.25rem">Set to 0 to clear. Does not affect live bets already on the table.</div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal('edit-tokens-modal')">Cancel</button>
+        <button class="btn" style="background:var(--gold);color:#000" onclick="confirmEditTokens()">Save</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="bet-modal">
     <div class="modal">
       <h3>Bet on <span id="bet-modal-num"></span></h3>
@@ -1195,6 +1212,7 @@
           <div class="rep-earn">$${(rep.earnings||0).toFixed(0)}</div>
           <div class="rep-actions">
             <button class="btn btn-sm" onclick="openGiveTokenModal(${rep.id})" title="Sale!">+ Token</button>
+            ${isAdmin ? `<button class="btn btn-sm btn-ghost" style="font-size:0.65rem;padding:3px 6px;border-color:#e67e22;color:#e67e22" onclick="editTokens(${rep.id})" title="Edit tokens">tokens</button>` : ''}
             ${isAdmin ? `<button class="btn btn-sm btn-ghost" style="opacity:0.5;font-size:0.65rem;padding:3px 5px;border-color:#c0392b;color:#e74c3c" onclick="if(confirm('Remove ${rep.name}?'))removeRep(${rep.id})">rm</button>` : ''}
           </div>
         `;
@@ -1478,6 +1496,29 @@
       await db.from('rr_bets').delete().eq('rep_id',id);
       await db.from('rr_reps').delete().eq('id',id);
       if(myRepId===id) myRepId=null;
+    }
+
+    let _editTokensRepId = null;
+
+    function editTokens(id) {
+      const rep = reps.find(r => r.id === id);
+      if (!rep) return;
+      _editTokensRepId = id;
+      const placed = bets.filter(b => b.rep_id === id).reduce((s,b) => s + b.tokens, 0);
+      const free = rep.tokens - placed;
+      document.getElementById('edit-tokens-label').innerHTML = `Editing <strong>${rep.name}</strong>`;
+      document.getElementById('edit-tokens-current').textContent = `${rep.tokens} total · ${placed} on table · ${free} free`;
+      document.getElementById('edit-tokens-input').value = rep.tokens;
+      document.getElementById('edit-tokens-modal').classList.add('active');
+    }
+
+    async function confirmEditTokens() {
+      const rep = reps.find(r => r.id === _editTokensRepId);
+      if (!rep) return;
+      const val = parseInt(document.getElementById('edit-tokens-input').value, 10);
+      if (isNaN(val) || val < 0) { alert('Enter a valid number (0 or more)'); return; }
+      await db.from('rr_reps').update({ tokens: val }).eq('id', rep.id);
+      closeModal('edit-tokens-modal');
     }
 
     function openGiveTokenModal(id) {
